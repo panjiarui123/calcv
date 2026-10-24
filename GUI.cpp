@@ -1,4 +1,4 @@
-//© 潘家睿 20261019
+//© 潘家睿 20261024
 #include "raylib\\include\\raylib.h"
 #include "favicon.h"
 #include <stack>
@@ -161,14 +161,11 @@ public:
 	}
 
 private:
-	static bool signbitf(f128 __x) {
-		return __x < 0.0Q ? true : false;
-	}
 	struct Token {
 		std::string value;
 		bool isOperator;
 	};
-
+	
 	static std::vector<Token> tokenize(std::string_view expr) {
 		std::vector<Token> tokens;
 		bool canBeUnary = true;
@@ -305,53 +302,53 @@ private:
 		}
 		return valueStack.empty() ? Complex(0.0Q, 0.0Q) : valueStack.top();
 	}
-	static Complex applyFunction(std::string_view func, Complex arg) {
-		f128 a = arg.real();
-		f128 b = arg.imag();
-		if (func == "sin") {
-			return Complex(sinq(a) * coshq(b), cosq(a) * sinhq(b));
-		}
-		if (func == "cos") {
-			return Complex(cosq(a) * coshq(b), -sinq(a) * sinhq(b));
-		}
-		if (func == "tan") {
-			Complex sz = applyFunction("sin", arg);
-			Complex cz = applyFunction("cos", arg);
-			if (cz == Complex(0.0Q, 0.0Q)) throw std::runtime_error("错误：正切分母零溢出");
-			return sz / cz;
-		}
-		if (func == "sqrt") {
-			f128 r = hypotq(a, b);
-			if (r == 0.0Q) return Complex(0.0Q, 0.0Q);
-			f128 x, y;
-			if (a >= 0.0Q) {
-				x = sqrtq((r + a) * 0.5Q);
-				y = b / (2.0Q * x);
-			} else {
-				y = (b >= 0.0Q || (b == 0.0Q && !signbitf(b))) ? sqrtq((r - a) * 0.5Q) : -sqrtq((r - a) * 0.5Q);
-				x = b / (2.0Q * y);
+		static Complex applyFunction(std::string_view func, Complex arg) {
+			f128 a = arg.real();
+			f128 b = arg.imag();
+			if (func == "sin") {
+				return Complex(sinq(a) * coshq(b), cosq(a) * sinhq(b));
 			}
-			return Complex(x, y);
+			if (func == "cos") {
+				return Complex(cosq(a) * coshq(b), -sinq(a) * sinhq(b));
+			}
+			if (func == "tan") {
+				Complex sz = applyFunction("sin", arg);
+				Complex cz = applyFunction("cos", arg);
+				if (cz == Complex(0.0Q, 0.0Q)) throw std::runtime_error("错误：正切分母零溢出");
+				return sz / cz;
+			}
+			if (func == "sqrt") {
+				f128 r = hypotq(a, b);
+				if (r == 0.0Q) return Complex(0.0Q, 0.0Q);
+				f128 x, y;
+				if (a >= 0.0Q) {
+					x = sqrtq((r + a) * 0.5Q);
+					y = b / (2.0Q * x);
+				} else {
+					y = (b >= 0.0Q || (b == 0.0Q && !signbitq(b))) ? sqrtq((r - a) * 0.5Q) : -sqrtq((r - a) * 0.5Q);
+					x = b / (2.0Q * y);
+				}
+				return Complex(x, y);
+			}
+			if (func == "exp") {
+				f128 eA = expq(a);
+				return Complex(eA * cosq(b), eA * sinq(b));
+			}
+			if (func == "ln") {
+				f128 r = hypotq(a, b);
+				f128 theta = atan2q(b, a);
+				return Complex(logq(r), theta);
+			}
+			if (func == "log" || func == "lg") {
+				Complex lnZ = applyFunction("ln", arg);
+				return lnZ / logq(10.0Q);
+			}
+			if (func == "abs") {
+				return Complex(hypotq(a, b), 0.0Q);
+			}
+			throw std::runtime_error("该高精函数暂不支持复数域: " + std::string(func));
 		}
-		if (func == "exp") {
-			f128 eA = expq(a);
-			return Complex(eA * cosq(b), eA * sinq(b));
-		}
-		if (func == "ln") {
-			f128 r = hypotq(a, b);
-			f128 theta = atan2q(b, a);
-			return Complex(logq(r), theta);
-		}
-		if (func == "log" || func == "lg") {
-			Complex lnZ = applyFunction("ln", arg);
-			return lnZ / logq(10.0Q);
-		}
-		if (func == "abs") {
-			return Complex(hypotq(a, b), 0.0Q);
-		}
-		throw std::runtime_error("该高精函数暂不支持复数域: " + std::string(func));
-	}
-
+	
 	static Complex applyOperation(Complex a, Complex b, char op) {
 		switch (op) {
 			case '+':
@@ -762,7 +759,7 @@ std::pair<std::string, std::string> test[34] = {
 	{"-abs(-5i)", "-5"},
 	{"sin(i)", "1.17520119i"},
 	{"cos(i)", "1.54308063"},
-	{"sqrt(-3-4i)", "1-2i"}
+	{"sqrt(-3-4i)", "1+2i"}
 };
 
 
